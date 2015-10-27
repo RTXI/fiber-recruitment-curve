@@ -94,6 +94,7 @@ void fiber_rec::customizeGUI(void) {
 	QHBoxLayout *scatterplotBoxLayout = new QHBoxLayout;
 	scatterplotBox->setLayout(scatterplotBoxLayout);
 	splot = new ScatterPlot(this);
+	splot->setFixedSize(450, 270);
 	scatterplotBoxLayout->addWidget(splot);
 	customlayout->addWidget(scatterplotBox, 0, 2, 2, 4);
 
