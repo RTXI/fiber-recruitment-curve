@@ -1,10 +1,27 @@
 /*
-* This is a template header file for a user modules derived from
-* DefaultGUIModel with a custom GUI.
+	 Copyright (C) 2015 Georgia Institute of Technology
+
+	 This program is free software: you can redistribute it and/or modify
+	 it under the terms of the GNU General Public License as published by
+	 the Free Software Foundation, either version 3 of the License, or
+	 (at your option) any later version.
+
+	 This program is distributed in the hope that it will be useful,
+	 but WITHOUT ANY WARRANTY; without even the implied warranty of
+	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	 GNU General Public License for more details.
+
+	 You should have received a copy of the GNU General Public License
+	 along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 */
 
 #include <QMdiArea>
 #include <default_gui_model.h>
+
+#include <scatterplot.h>
+#include <algorithm>
+#include <gsl/gsl_math.h>
 
 class fiber_rec : public DefaultGUIModel {
 	
@@ -29,8 +46,9 @@ class fiber_rec : public DefaultGUIModel {
 		double current_amp;
 		double period;
 
+		ScatterPlot *splot;
+
 		void initStim(void);
 	
 	private slots:
-		void clear_plot(void);
 };

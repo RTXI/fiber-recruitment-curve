@@ -1,6 +1,19 @@
 /*
-* This is a template implementation file for a user module derived from
-* DefaultGUIModel with a custom GUI.
+	 Copyright (C) 2015 Georgia Institute of Technology
+
+	 This program is free software: you can redistribute it and/or modify
+	 it under the terms of the GNU General Public License as published by
+	 the Free Software Foundation, either version 3 of the License, or
+	 (at your option) any later version.
+
+	 This program is distributed in the hope that it will be useful,
+	 but WITHOUT ANY WARRANTY; without even the implied warranty of
+	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	 GNU General Public License for more details.
+
+	 You should have received a copy of the GNU General Public License
+	 along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 */
 
 #include <fiber_rec.h>
@@ -28,7 +41,7 @@ fiber_rec::fiber_rec(void) : DefaultGUIModel("Fiber Recruitment Curve", ::vars, 
 	customizeGUI();
 	update( INIT ); 
 	refresh(); 
-	resizeMe();
+  QTimer::singleShot(0, this, SLOT(resizeMe()));
 }
 
 fiber_rec::~fiber_rec(void) { }
@@ -40,6 +53,7 @@ void fiber_rec::execute(void) {
 void fiber_rec::update(DefaultGUIModel::update_flags_t flag) {
 	switch (flag) {
 		case INIT:
+			initStim();
 			setParameter("Pulse Width", pulse_width);
 			setParameter("Max Amp", max_amp);
 			setParameter("Min Amp", min_amp);
@@ -75,19 +89,30 @@ void fiber_rec::update(DefaultGUIModel::update_flags_t flag) {
 void fiber_rec::customizeGUI(void) {
 	QGridLayout *customlayout = DefaultGUIModel::getLayout();
 	
+	// Initialize plots
+	QGroupBox *scatterplotBox = new QGroupBox();
+	QHBoxLayout *scatterplotBoxLayout = new QHBoxLayout;
+	scatterplotBox->setLayout(scatterplotBoxLayout);
+	splot = new ScatterPlot(this);
+	scatterplotBoxLayout->addWidget(splot);
+	customlayout->addWidget(scatterplotBox, 0, 2, 2, 4);
+
 	QGroupBox *button_group = new QGroupBox;
-	
 	QPushButton *clearPlotButton = new QPushButton("Clear Plot");
 	QHBoxLayout *button_layout = new QHBoxLayout;
 	button_group->setLayout(button_layout);
 	button_layout->addWidget(clearPlotButton);
-	//QObject::connect(clearPlotButton, SIGNAL(clicked()), this, SLOT(clear_plot(void)));
-	
+	QObject::connect(clearPlotButton, SIGNAL(clicked()), splot, SLOT(clear(void)));
+
 	customlayout->addWidget(button_group, 0,0);
 	setLayout(customlayout);
 }
 
 void fiber_rec::initStim(void)
 {
-
+	max_amp = 5;
+	min_amp = 0;
+	step = 0.1;
+	pulse_width = 0.2;
+	current_amp = 0.0;
 }
