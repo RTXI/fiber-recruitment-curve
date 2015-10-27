@@ -6,35 +6,31 @@
 #include <QMdiArea>
 #include <default_gui_model.h>
 
-class PluginTemplate : public DefaultGUIModel {
+class fiber_rec : public DefaultGUIModel {
 	
 	Q_OBJECT
 	
 	public:
-	
-		PluginTemplate(void);
-		virtual ~PluginTemplate(void);
+		fiber_rec(void);
+		virtual ~fiber_rec(void);
 	
 		void execute(void);
 		void createGUI(DefaultGUIModel::variable_t *, int);
 		void customizeGUI(void);
 	
 	protected:
-	
 		virtual void update(DefaultGUIModel::update_flags_t);
 	
 	private:
-	
-		double some_parameter;
-		double some_state;
+		double max_amp;
+		double min_amp;
+		double step;
+		double pulse_width;
+		double current_amp;
 		double period;
+
+		void initStim(void);
 	
 	private slots:
-	// these are custom functions that can also be connected
-	// to events through the Qt API. they must be implemented
-	// in plugin_template.cpp
-	
-		void aBttn_event(void);
-		void bBttn_event(void);
-	
+		void clear_plot(void);
 };

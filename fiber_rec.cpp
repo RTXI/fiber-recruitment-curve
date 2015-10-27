@@ -9,52 +9,62 @@
 #include <QtGui>
 
 extern "C" Plugin::Object *createRTXIPlugin(void){
-	return new PluginTemplate();
+	return new fiber_rec();
 }
 
 static DefaultGUIModel::variable_t vars[] = {
-	{ "GUI label", "Tooltip description", DefaultGUIModel::PARAMETER
-		| DefaultGUIModel::DOUBLE, },
-	{ "A State", "Tooltip description", DefaultGUIModel::STATE, }, 
+	{ "Pulse Width", "(ms)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, },
+	{ "Max Amp", "Upper stimulus amplitude boundary value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
+	{ "Min Amp", "Lower stimulus amplitude boundary value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
+	{ "Amp Step", "Step size for incrememnting stimulus value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
+	{ "Current Amp", "Current stimulus amplitude", DefaultGUIModel::STATE, },
 };
 
 static size_t num_vars = sizeof(vars) / sizeof(DefaultGUIModel::variable_t);
 
-PluginTemplate::PluginTemplate(void) : DefaultGUIModel("PluginTemplate with Custom GUI", ::vars, ::num_vars) {
-	setWhatsThis("<p><b>PluginTemplate:</b><br>QWhatsThis description.</p>");
-	DefaultGUIModel::createGUI(vars, num_vars); // this is required to create the GUI
+fiber_rec::fiber_rec(void) : DefaultGUIModel("Fiber Recruitment Curve", ::vars, ::num_vars) {
+	setWhatsThis("<p><b>fiber_rec:</b><br>QWhatsThis description.</p>");
+	DefaultGUIModel::createGUI(vars, num_vars);
 	customizeGUI();
-	update( INIT ); // this is optional, you may place initialization code directly into the constructor
-	refresh(); // this is required to update the GUI with parameter and state values
-	QTimer::singleShot(0, this, SLOT(resizeMe()));
+	update( INIT ); 
+	refresh(); 
+	resizeMe();
 }
 
-PluginTemplate::~PluginTemplate(void) { }
+fiber_rec::~fiber_rec(void) { }
 
-void PluginTemplate::execute(void) {
+void fiber_rec::execute(void) {
 	return;
 }
 
-void PluginTemplate::update(DefaultGUIModel::update_flags_t flag) {
+void fiber_rec::update(DefaultGUIModel::update_flags_t flag) {
 	switch (flag) {
 		case INIT:
+			setParameter("Pulse Width", pulse_width);
+			setParameter("Max Amp", max_amp);
+			setParameter("Min Amp", min_amp);
+			setParameter("Amp Step", step);
+			setState("Current Amp", current_amp);
 			period = RT::System::getInstance()->getPeriod() * 1e-6; // ms
-			setParameter("GUI label", some_parameter);
-			setState("A State", some_state);
 			break;
 	
 		case MODIFY:
-			some_parameter = getParameter("GUI label").toDouble();
+			pulse_width = getParameter("Pulse Width").toDouble();
+			max_amp = getParameter("Max Amp").toDouble();
+			min_amp = getParameter("Min Amp").toDouble();
+			step = getParameter("Amp Step").toDouble();
 			break;
 
 		case UNPAUSE:
 			break;
 
 		case PAUSE:
+			output(0) = 0;
 			break;
 
 		case PERIOD:
 			period = RT::System::getInstance()->getPeriod() * 1e-6; // ms
+			initStim();
 			break;
 	
 		default:
@@ -62,26 +72,22 @@ void PluginTemplate::update(DefaultGUIModel::update_flags_t flag) {
 	}
 }
 
-void PluginTemplate::customizeGUI(void) {
+void fiber_rec::customizeGUI(void) {
 	QGridLayout *customlayout = DefaultGUIModel::getLayout();
 	
 	QGroupBox *button_group = new QGroupBox;
 	
-	QPushButton *abutton = new QPushButton("Button A");
-	QPushButton *bbutton = new QPushButton("Button B");
+	QPushButton *clearPlotButton = new QPushButton("Clear Plot");
 	QHBoxLayout *button_layout = new QHBoxLayout;
 	button_group->setLayout(button_layout);
-	button_layout->addWidget(abutton);
-	button_layout->addWidget(bbutton);
-	QObject::connect(abutton, SIGNAL(clicked()), this, SLOT(aBttn_event()));
-	QObject::connect(bbutton, SIGNAL(clicked()), this, SLOT(bBttn_event()));
+	button_layout->addWidget(clearPlotButton);
+	//QObject::connect(clearPlotButton, SIGNAL(clicked()), this, SLOT(clear_plot(void)));
 	
 	customlayout->addWidget(button_group, 0,0);
 	setLayout(customlayout);
 }
 
-// functions designated as Qt slots are implemented as regular C++ functions
-void PluginTemplate::aBttn_event(void) { }
+void fiber_rec::initStim(void)
+{
 
-void PluginTemplate::bBttn_event(void) { }
-
+}
