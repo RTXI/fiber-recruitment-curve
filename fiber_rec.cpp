@@ -26,47 +26,72 @@ extern "C" Plugin::Object *createRTXIPlugin(void){
 }
 
 static DefaultGUIModel::variable_t vars[] = {
-	{ "Pulse Width", "(ms)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, },
+	{ "Pulse Width", "(s)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, },
 	{ "Max Amp", "Upper stimulus amplitude boundary value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
 	{ "Min Amp", "Lower stimulus amplitude boundary value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
 	{ "Amp Step", "Step size for incrememnting stimulus value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
 	{ "Current Amp", "Current stimulus amplitude", DefaultGUIModel::STATE, },
+	{ "Delay", "Delay (s) between stimuli", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, },
+	{ "Vm", "Input signal", DefaultGUIModel::INPUT, },
+	{ "Stimulus", "Stimulus output", DefaultGUIModel::OUTPUT, },
 };
 
 static size_t num_vars = sizeof(vars) / sizeof(DefaultGUIModel::variable_t);
 
-fiber_rec::fiber_rec(void) : DefaultGUIModel("Fiber Recruitment Curve", ::vars, ::num_vars) {
+fiber_rec::fiber_rec(void) : DefaultGUIModel("Fiber Recruitment Curve", ::vars, ::num_vars)
+{
 	setWhatsThis("<p><b>fiber_rec:</b><br>QWhatsThis description.</p>");
 	DefaultGUIModel::createGUI(vars, num_vars);
 	customizeGUI();
 	update( INIT ); 
 	refresh(); 
-  QTimer::singleShot(0, this, SLOT(resizeMe()));
+	QTimer::singleShot(0, this, SLOT(resizeMe()));
 }
 
-fiber_rec::~fiber_rec(void) { }
+fiber_rec::~fiber_rec(void)
+{
+}
 
-void fiber_rec::execute(void) {
+void fiber_rec::execute(void)
+{
+	if (idx < stim.size())
+		output(0) = stim[idx++];
+	else
+	{
+		pause(true);
+	}
 	return;
 }
 
-void fiber_rec::update(DefaultGUIModel::update_flags_t flag) {
-	switch (flag) {
+void fiber_rec::update(DefaultGUIModel::update_flags_t flag)
+{
+	switch (flag)
+	{
 		case INIT:
-			initStim();
+			max_amp = 1; // V
+			min_amp = 0; // V
+			step = 0.1; // V
+			pulse_width = 0.2; // s
+			current_amp = 0.0; // V
+			delay = 1.0; // s
+			idx = 0;
 			setParameter("Pulse Width", pulse_width);
 			setParameter("Max Amp", max_amp);
 			setParameter("Min Amp", min_amp);
 			setParameter("Amp Step", step);
+			setParameter("Delay", delay);
 			setState("Current Amp", current_amp);
-			period = RT::System::getInstance()->getPeriod() * 1e-6; // ms
+			period = RT::System::getInstance()->getPeriod() * 1e-9; // s
+			initStim();
 			break;
-	
+
 		case MODIFY:
 			pulse_width = getParameter("Pulse Width").toDouble();
 			max_amp = getParameter("Max Amp").toDouble();
 			min_amp = getParameter("Min Amp").toDouble();
 			step = getParameter("Amp Step").toDouble();
+			delay = getParameter("Delay").toDouble();
+			initStim();
 			break;
 
 		case UNPAUSE:
@@ -77,19 +102,25 @@ void fiber_rec::update(DefaultGUIModel::update_flags_t flag) {
 			break;
 
 		case PERIOD:
-			period = RT::System::getInstance()->getPeriod() * 1e-6; // ms
+			period = RT::System::getInstance()->getPeriod() * 1e-9; // s
+			idx = 0;
 			initStim();
 			break;
-	
+
 		default:
 			break;
 	}
 }
 
-void fiber_rec::customizeGUI(void) {
+void fiber_rec::plotData(void)
+{
+}
+
+void fiber_rec::customizeGUI(void)
+{
 	QGridLayout *customlayout = DefaultGUIModel::getLayout();
-	
-	// Initialize plots
+
+	// Initialize plot
 	QGroupBox *scatterplotBox = new QGroupBox();
 	QHBoxLayout *scatterplotBoxLayout = new QHBoxLayout;
 	scatterplotBox->setLayout(scatterplotBoxLayout);
@@ -98,12 +129,16 @@ void fiber_rec::customizeGUI(void) {
 	scatterplotBoxLayout->addWidget(splot);
 	customlayout->addWidget(scatterplotBox, 0, 2, 2, 4);
 
+	// Clear plot button
 	QGroupBox *button_group = new QGroupBox;
-	QPushButton *clearPlotButton = new QPushButton("Clear Plot");
+	QPushButton *clearPlotButton = new QPushButton("Clear Plot and Data");
 	QHBoxLayout *button_layout = new QHBoxLayout;
 	button_group->setLayout(button_layout);
 	button_layout->addWidget(clearPlotButton);
 	QObject::connect(clearPlotButton, SIGNAL(clicked()), splot, SLOT(clear(void)));
+	QObject::connect(clearPlotButton, SIGNAL(clicked()), this, SLOT(clearData(void)));
+	QObject::connect(this, SIGNAL(newDataPoint(double,double)), splot, SLOT(appendPoint(double,double)));
+	QObject::connect(this,SIGNAL(setPlotRange(double, double, double, double)),splot,SLOT(setAxes(double, double, double, double)));
 
 	customlayout->addWidget(button_group, 0,0);
 	setLayout(customlayout);
@@ -111,9 +146,24 @@ void fiber_rec::customizeGUI(void) {
 
 void fiber_rec::initStim(void)
 {
-	max_amp = 5;
-	min_amp = 0;
-	step = 0.1;
-	pulse_width = 0.2;
-	current_amp = 0.0;
+	stim.clear();
+	idx = 0;
+	double amp = min_amp;
+	num_pulses = (max_amp - min_amp)/step;
+	for (int n = 0; n < num_pulses; n++)
+	{
+		amp += step;
+		for (int i = 0; i < pulse_width / period; i++)
+		{
+			stim.push_back(amp);
+		}
+		for (int i = 0; i < ((delay - pulse_width) / period); i++)
+		{
+			stim.push_back(0);
+		}
+	}
+}
+
+void fiber_rec::clearData(void)
+{
 }

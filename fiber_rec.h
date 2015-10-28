@@ -34,6 +34,10 @@ class fiber_rec : public DefaultGUIModel {
 		void execute(void);
 		void createGUI(DefaultGUIModel::variable_t *, int);
 		void customizeGUI(void);
+
+	signals:
+		void newDataPoint(double, double);
+		void setPlotRange(double, double, double, double);
 	
 	protected:
 		virtual void update(DefaultGUIModel::update_flags_t);
@@ -45,10 +49,14 @@ class fiber_rec : public DefaultGUIModel {
 		double pulse_width;
 		double current_amp;
 		double period;
-
-		ScatterPlot *splot;
-
+		double delay;
+		double num_pulses;
+		int idx;
 		void initStim(void);
+		ScatterPlot *splot;
+		std::vector<double> stim;
 	
 	private slots:
+		void plotData(void);
+		void clearData(void);
 };
