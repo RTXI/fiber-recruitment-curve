@@ -58,7 +58,7 @@ void fiber_rec::execute(void)
 		output(0) = stim[idx++];
 	else
 	{
-		pause(true);
+		pauseButton->setChecked(true);
 	}
 	return;
 }
