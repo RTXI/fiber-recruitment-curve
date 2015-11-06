@@ -47,7 +47,6 @@ class fiber_rec : public DefaultGUIModel {
 		double min_amp;
 		double step;
 		double pulse_width;
-		double current_amp;
 		double period;
 		double delay;
 		double num_pulses;

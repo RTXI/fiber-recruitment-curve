@@ -30,7 +30,6 @@ static DefaultGUIModel::variable_t vars[] = {
 	{ "Max Amp", "Upper stimulus amplitude boundary value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
 	{ "Min Amp", "Lower stimulus amplitude boundary value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
 	{ "Amp Step", "Step size for incrememnting stimulus value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
-	{ "Current Amp", "Current stimulus amplitude", DefaultGUIModel::STATE, },
 	{ "Delay", "Delay (s) between stimuli", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, },
 	{ "Vm", "Input signal", DefaultGUIModel::INPUT, },
 	{ "Stimulus", "Stimulus output", DefaultGUIModel::OUTPUT, },
@@ -72,7 +71,6 @@ void fiber_rec::update(DefaultGUIModel::update_flags_t flag)
 			min_amp = 0; // V
 			step = 0.1; // V
 			pulse_width = 0.2; // s
-			current_amp = 0.0; // V
 			delay = 1.0; // s
 			idx = 0;
 			setParameter("Pulse Width", pulse_width);
@@ -80,7 +78,6 @@ void fiber_rec::update(DefaultGUIModel::update_flags_t flag)
 			setParameter("Min Amp", min_amp);
 			setParameter("Amp Step", step);
 			setParameter("Delay", delay);
-			setState("Current Amp", current_amp);
 			period = RT::System::getInstance()->getPeriod() * 1e-9; // s
 			initStim();
 			break;
@@ -99,6 +96,7 @@ void fiber_rec::update(DefaultGUIModel::update_flags_t flag)
 
 		case PAUSE:
 			output(0) = 0;
+			idx = 0;
 			break;
 
 		case PERIOD:
