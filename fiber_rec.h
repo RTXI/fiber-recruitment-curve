@@ -50,6 +50,7 @@ class fiber_rec : public DefaultGUIModel {
 		double period;
 		double delay;
 		double num_pulses;
+		double current_amp;
 		int idx;
 		void initStim(void);
 		ScatterPlot *splot;

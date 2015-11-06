@@ -31,6 +31,7 @@ static DefaultGUIModel::variable_t vars[] = {
 	{ "Min Amp", "Lower stimulus amplitude boundary value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
 	{ "Amp Step", "Step size for incrememnting stimulus value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
 	{ "Delay", "Delay (s) between stimuli", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, },
+	{ "Current Amp", "Current stimulus amp (V)", DefaultGUIModel::STATE | DefaultGUIModel::DOUBLE, },
 	{ "Voltage", "Input signal", DefaultGUIModel::INPUT, },
 	{ "Stimulus", "Stimulus output", DefaultGUIModel::OUTPUT, },
 };
@@ -54,7 +55,7 @@ fiber_rec::~fiber_rec(void)
 void fiber_rec::execute(void)
 {
 	if (idx < stim.size())
-		output(0) = stim[idx++];
+		output(0) = current_amp = stim[idx++];
 	else
 	{
 		pauseButton->setChecked(true);
@@ -72,12 +73,14 @@ void fiber_rec::update(DefaultGUIModel::update_flags_t flag)
 			step = 0.1; // V
 			pulse_width = 0.2; // s
 			delay = 1.0; // s
+			current_amp = 0; // V
 			idx = 0;
 			setParameter("Pulse Width", pulse_width);
 			setParameter("Max Amp", max_amp);
 			setParameter("Min Amp", min_amp);
 			setParameter("Amp Step", step);
 			setParameter("Delay", delay);
+			setState("Current Amp", current_amp);
 			period = RT::System::getInstance()->getPeriod() * 1e-9; // s
 			initStim();
 			break;
@@ -97,6 +100,7 @@ void fiber_rec::update(DefaultGUIModel::update_flags_t flag)
 		case PAUSE:
 			output(0) = 0;
 			idx = 0;
+			current_amp = 0;
 			break;
 
 		case PERIOD:
@@ -146,6 +150,7 @@ void fiber_rec::initStim(void)
 {
 	stim.clear();
 	idx = 0;
+	current_amp = 0;
 	double amp = min_amp;
 	num_pulses = (max_amp - min_amp)/step;
 	for (int n = 0; n < num_pulses; n++)
