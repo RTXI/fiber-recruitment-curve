@@ -31,7 +31,7 @@ static DefaultGUIModel::variable_t vars[] = {
 	{ "Min Amp", "Lower stimulus amplitude boundary value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
 	{ "Amp Step", "Step size for incrememnting stimulus value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
 	{ "Delay", "Delay (s) between stimuli", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, },
-	{ "Vm", "Input signal", DefaultGUIModel::INPUT, },
+	{ "Voltage", "Input signal", DefaultGUIModel::INPUT, },
 	{ "Stimulus", "Stimulus output", DefaultGUIModel::OUTPUT, },
 };
 
