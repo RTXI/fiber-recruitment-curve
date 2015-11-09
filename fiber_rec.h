@@ -35,6 +35,10 @@ class fiber_rec : public DefaultGUIModel {
 		void createGUI(DefaultGUIModel::variable_t *, int);
 		void customizeGUI(void);
 
+		enum mode_t {
+			train=1, stim;
+		};
+
 	signals:
 		void newDataPoint(double, double);
 		void setPlotRange(double, double, double, double);
@@ -43,6 +47,7 @@ class fiber_rec : public DefaultGUIModel {
 		virtual void update(DefaultGUIModel::update_flags_t);
 	
 	private:
+		mode_t mode;
 		double max_amp;
 		double min_amp;
 		double step;
@@ -51,12 +56,16 @@ class fiber_rec : public DefaultGUIModel {
 		double delay;
 		double num_pulses;
 		double current_amp;
+		double noise_floor;
 		int idx;
 		void initStim(void);
 		ScatterPlot *splot;
 		std::vector<double> stim;
+		std::vector<double> voltage;
+		std::vector<double> noise;
 	
 	private slots:
 		void plotData(void);
 		void clearData(void);
+		void trainNoise(void);
 };

@@ -21,6 +21,8 @@
 #include <iostream>
 #include <QtGui>
 
+#define fs (1/period)
+
 extern "C" Plugin::Object *createRTXIPlugin(void){
 	return new fiber_rec();
 }
@@ -54,13 +56,27 @@ fiber_rec::~fiber_rec(void)
 
 void fiber_rec::execute(void)
 {
-	if (idx < stim.size())
-		output(0) = current_amp = stim[idx++];
-	else
-	{
-		pauseButton->setChecked(true);
+	switch (mode) {
+		case train:
+			if(noise.size() < fs)
+				noise.push_back(input(0));
+			else
+				trainNoise();
+			break;
+		case stim:
+			if (idx < stim.size())
+			{
+				voltage.push_back(input(0));
+				output(0) = current_amp = stim[idx++];
+			}
+			else
+			{
+				pauseButton->setChecked(true);
+			}
+			break;
+		default:
+			return;
 	}
-	return;
 }
 
 void fiber_rec::update(DefaultGUIModel::update_flags_t flag)
@@ -68,6 +84,7 @@ void fiber_rec::update(DefaultGUIModel::update_flags_t flag)
 	switch (flag)
 	{
 		case INIT:
+			mode = default;
 			max_amp = 1; // V
 			min_amp = 0; // V
 			step = 0.1; // V
@@ -75,6 +92,7 @@ void fiber_rec::update(DefaultGUIModel::update_flags_t flag)
 			delay = 1.0; // s
 			current_amp = 0; // V
 			idx = 0;
+			noise_floor = 0;
 			setParameter("Pulse Width", pulse_width);
 			setParameter("Max Amp", max_amp);
 			setParameter("Min Amp", min_amp);
@@ -116,6 +134,10 @@ void fiber_rec::update(DefaultGUIModel::update_flags_t flag)
 
 void fiber_rec::plotData(void)
 {
+	for(size_t i = 0; i < (1/period); i++)
+	{
+
+	}
 }
 
 void fiber_rec::customizeGUI(void)
@@ -134,13 +156,16 @@ void fiber_rec::customizeGUI(void)
 	// Clear plot button
 	QGroupBox *button_group = new QGroupBox;
 	QPushButton *clearPlotButton = new QPushButton("Clear Plot and Data");
+	QPushButton *trainNoiseButton = new QPushButton("Calibrate Noise");
 	QHBoxLayout *button_layout = new QHBoxLayout;
 	button_group->setLayout(button_layout);
 	button_layout->addWidget(clearPlotButton);
+	button_layout->addWidget(trainNoiseButton);
 	QObject::connect(clearPlotButton, SIGNAL(clicked()), splot, SLOT(clear(void)));
 	QObject::connect(clearPlotButton, SIGNAL(clicked()), this, SLOT(clearData(void)));
+	QObject::connect(trainNoiseButton, SIGNAL(clicked()), this, SLOT(trainNoise(void)));
 	QObject::connect(this, SIGNAL(newDataPoint(double,double)), splot, SLOT(appendPoint(double,double)));
-	QObject::connect(this,SIGNAL(setPlotRange(double, double, double, double)),splot,SLOT(setAxes(double, double, double, double)));
+	QObject::connect(this, SIGNAL(setPlotRange(double, double, double, double)), splot, SLOT(setAxes(double, double, double, double)));
 
 	customlayout->addWidget(button_group, 0,0);
 	setLayout(customlayout);
@@ -150,7 +175,6 @@ void fiber_rec::initStim(void)
 {
 	stim.clear();
 	idx = 0;
-	current_amp = 0;
 	double amp = min_amp;
 	num_pulses = (max_amp - min_amp)/step;
 	for (int n = 0; n < num_pulses; n++)
@@ -169,4 +193,17 @@ void fiber_rec::initStim(void)
 
 void fiber_rec::clearData(void)
 {
+	voltage.clear();
+	splot->clear();
+}
+
+void fiber_rec::trainNoise(void)
+{
+	mode = default;
+	noise_floor = 0;
+
+	// Rectify noise vector
+
+	// Compute mean
+	noise_floor = 
 }
