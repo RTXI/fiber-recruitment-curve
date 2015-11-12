@@ -36,7 +36,7 @@ class fiber_rec : public DefaultGUIModel {
 		void customizeGUI(void);
 
 		enum mode_t {
-			train=1, stim;
+			none=0, train=1, zap=2,
 		};
 
 	signals:

@@ -63,7 +63,7 @@ void fiber_rec::execute(void)
 			else
 				trainNoise();
 			break;
-		case stim:
+		case zap:
 			if (idx < stim.size())
 			{
 				voltage.push_back(input(0));
@@ -84,7 +84,7 @@ void fiber_rec::update(DefaultGUIModel::update_flags_t flag)
 	switch (flag)
 	{
 		case INIT:
-			mode = default;
+			mode = none;
 			max_amp = 1; // V
 			min_amp = 0; // V
 			step = 0.1; // V
@@ -199,11 +199,11 @@ void fiber_rec::clearData(void)
 
 void fiber_rec::trainNoise(void)
 {
-	mode = default;
+	mode = none;
 	noise_floor = 0;
 
 	// Rectify noise vector
 
 	// Compute mean
-	noise_floor = 
+	//noise_floor = 
 }
