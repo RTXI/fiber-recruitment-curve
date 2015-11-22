@@ -155,6 +155,7 @@ void fiber_rec::customizeGUI(void)
 	scatterplotBox->setLayout(scatterplotBoxLayout);
 	splot = new ScatterPlot(this);
 	splot->setFixedSize(450, 270);
+	splot->setAxes(0.0, 10.0, 0.0, 10.0);
 	scatterplotBoxLayout->addWidget(splot);
 	customlayout->addWidget(scatterplotBox, 0, 2, 2, 4);
 
@@ -217,6 +218,7 @@ void fiber_rec::plotData(void)
 	{
 		// Compute noise floor
 		plot_point = abs(std::accumulate(voltage.begin()+(i*fs), voltage.begin()+((i+1)*fs), 0.0) / voltage.size());
+		emit newDataPoint((double)(i), plot_point);
 	}
 }
 
