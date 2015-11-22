@@ -22,7 +22,7 @@ SOURCES = fiber_rec.cpp\
 					$(RTXI_INCLUDES)/scrollbar.cpp\
 					$(RTXI_INCLUDES)/moc_scrollbar.cpp\
 
-LIBS = -lqwt -lgsl
+LIBS = -lqwt
 
 ### Do not edit below this line ###
 

@@ -1,18 +1,18 @@
 /*
-	 Copyright (C) 2015 Georgia Institute of Technology
+			Copyright (C) 2015 Georgia Institute of Technology
 
-	 This program is free software: you can redistribute it and/or modify
-	 it under the terms of the GNU General Public License as published by
-	 the Free Software Foundation, either version 3 of the License, or
-	 (at your option) any later version.
+			This program is free software: you can redistribute it and/or modify
+			it under the terms of the GNU General Public License as published by
+			the Free Software Foundation, either version 3 of the License, or
+			(at your option) any later version.
 
-	 This program is distributed in the hope that it will be useful,
-	 but WITHOUT ANY WARRANTY; without even the implied warranty of
-	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	 GNU General Public License for more details.
+			This program is distributed in the hope that it will be useful,
+			but WITHOUT ANY WARRANTY; without even the implied warranty of
+			MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+			GNU General Public License for more details.
 
-	 You should have received a copy of the GNU General Public License
-	 along with this program.  If not, see <http://www.gnu.org/licenses/>.
+			You should have received a copy of the GNU General Public License
+			along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -33,7 +33,7 @@ static DefaultGUIModel::variable_t vars[] = {
 	{ "Min Amp", "Lower stimulus amplitude boundary value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
 	{ "Amp Step", "Step size for incrememnting stimulus value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
 	{ "Delay", "Delay (s) between stimuli", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, },
-	{ "Current Amp", "Current stimulus amp (V)", DefaultGUIModel::STATE | DefaultGUIModel::DOUBLE, },
+	{ "Current Amp", "Current stimulus amp (V)", DefaultGUIModel::STATE | DefaultGUIModel::DOUBLE, }, 
 	{ "Voltage", "Input signal", DefaultGUIModel::INPUT, },
 	{ "Stimulus", "Stimulus output", DefaultGUIModel::OUTPUT, },
 };
@@ -45,7 +45,7 @@ fiber_rec::fiber_rec(void) : DefaultGUIModel("Fiber Recruitment Curve", ::vars, 
 	setWhatsThis("<p><b>fiber_rec:</b><br>QWhatsThis description.</p>");
 	DefaultGUIModel::createGUI(vars, num_vars);
 	customizeGUI();
-	update( INIT ); 
+	update(INIT); 
 	refresh(); 
 	QTimer::singleShot(0, this, SLOT(resizeMe()));
 }
@@ -59,19 +59,28 @@ void fiber_rec::execute(void)
 	switch (mode) {
 		case train:
 			if(noise.size() < fs)
+			{
 				noise.push_back(input(0));
+			}
 			else
+			{
+				mode = none;
+				pauseButton->setChecked(true);
 				trainNoise();
+			}
 			break;
 		case zap:
 			if (idx < stim.size())
 			{
 				voltage.push_back(input(0));
-				output(0) = current_amp = stim[idx++];
+				output(0) = stim[idx++];
+				if(output(0) != 0.0)
+					current_amp = stim[idx++];
 			}
 			else
 			{
 				pauseButton->setChecked(true);
+				plotData();
 			}
 			break;
 		default:
@@ -113,6 +122,10 @@ void fiber_rec::update(DefaultGUIModel::update_flags_t flag)
 			break;
 
 		case UNPAUSE:
+			voltage.clear();
+			if(mode == none)
+				mode = zap;
+			statusBar->showMessage(tr("Status: Running trial..."));
 			break;
 
 		case PAUSE:
@@ -129,14 +142,6 @@ void fiber_rec::update(DefaultGUIModel::update_flags_t flag)
 
 		default:
 			break;
-	}
-}
-
-void fiber_rec::plotData(void)
-{
-	for(size_t i = 0; i < (1/period); i++)
-	{
-
 	}
 }
 
@@ -163,11 +168,20 @@ void fiber_rec::customizeGUI(void)
 	button_layout->addWidget(trainNoiseButton);
 	QObject::connect(clearPlotButton, SIGNAL(clicked()), splot, SLOT(clear(void)));
 	QObject::connect(clearPlotButton, SIGNAL(clicked()), this, SLOT(clearData(void)));
-	QObject::connect(trainNoiseButton, SIGNAL(clicked()), this, SLOT(trainNoise(void)));
+	QObject::connect(trainNoiseButton, SIGNAL(clicked()), this, SLOT(toggleTrainMode(void)));
 	QObject::connect(this, SIGNAL(newDataPoint(double,double)), splot, SLOT(appendPoint(double,double)));
 	QObject::connect(this, SIGNAL(setPlotRange(double, double, double, double)), splot, SLOT(setAxes(double, double, double, double)));
 
-	customlayout->addWidget(button_group, 0,0);
+	QGroupBox *status_group = new QGroupBox;
+	QHBoxLayout *status_layout = new QHBoxLayout;
+	statusBar = new QStatusBar();
+	statusBar->setSizeGripEnabled(false);
+	statusBar->showMessage(tr("Status: Initialization complete..."));
+	status_group->setLayout(status_layout);
+	status_layout->addWidget(statusBar);
+
+	customlayout->addWidget(button_group, 0, 0);
+	customlayout->addWidget(status_group, 10, 2, 1, 1);
 	setLayout(customlayout);
 }
 
@@ -181,29 +195,48 @@ void fiber_rec::initStim(void)
 	{
 		amp += step;
 		for (int i = 0; i < pulse_width / period; i++)
-		{
 			stim.push_back(amp);
-		}
 		for (int i = 0; i < ((delay - pulse_width) / period); i++)
-		{
 			stim.push_back(0);
-		}
 	}
 }
 
 void fiber_rec::clearData(void)
 {
+	// Clear data
 	voltage.clear();
 	splot->clear();
+
+	// Update status
+	statusBar->showMessage(tr("Status: Data cleared..."));
+}
+
+void fiber_rec::plotData(void)
+{
+	for (size_t i = 0; i <= voltage.size()/fs; i++)
+	{
+		// Compute noise floor
+		plot_point = abs(std::accumulate(voltage.begin()+(i*fs), voltage.begin()+((i+1)*fs), 0.0) / voltage.size());
+	}
 }
 
 void fiber_rec::trainNoise(void)
 {
-	mode = none;
-	noise_floor = 0;
+	// Compute noise floor
+	noise_floor = abs(std::accumulate(noise.begin(), noise.end(), 0.0) / noise.size());
 
-	// Rectify noise vector
+	// Update status
+	statusBar->showMessage(tr("Status: Noise trained..."));
+	mode = zap;
+}
 
-	// Compute mean
-	//noise_floor = 
+void fiber_rec::toggleTrainMode(void)
+{
+	// Cleanup old noise data
+	noise.clear();
+
+	// Set mode to train noise
+	mode = train;
+	pauseButton->setChecked(false);
+	statusBar->showMessage(tr("Status: Training noise..."));
 }

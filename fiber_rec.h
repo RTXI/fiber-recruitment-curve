@@ -21,7 +21,6 @@
 
 #include <scatterplot.h>
 #include <algorithm>
-#include <gsl/gsl_math.h>
 
 class fiber_rec : public DefaultGUIModel {
 	
@@ -57,9 +56,12 @@ class fiber_rec : public DefaultGUIModel {
 		double num_pulses;
 		double current_amp;
 		double noise_floor;
+		double plot_point;
 		int idx;
 		void initStim(void);
+		void trainNoise(void);
 		ScatterPlot *splot;
+		QStatusBar *statusBar;
 		std::vector<double> stim;
 		std::vector<double> voltage;
 		std::vector<double> noise;
@@ -67,5 +69,5 @@ class fiber_rec : public DefaultGUIModel {
 	private slots:
 		void plotData(void);
 		void clearData(void);
-		void trainNoise(void);
+		void toggleTrainMode(void);
 };
