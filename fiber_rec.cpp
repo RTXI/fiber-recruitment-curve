@@ -80,7 +80,7 @@ void fiber_rec::execute(void)
 			else
 			{
 				pauseButton->setChecked(true);
-				plotData();
+				emit processData();
 			}
 			break;
 		default:
@@ -155,7 +155,12 @@ void fiber_rec::customizeGUI(void)
 	scatterplotBox->setLayout(scatterplotBoxLayout);
 	splot = new ScatterPlot(this);
 	splot->setFixedSize(450, 270);
-	splot->setAxes(0.0, 10.0, 0.0, 10.0);
+	splot->setAxes(0.0, 10.0, 0.0, 1.0);
+	scurve = new QwtPlotCurve();
+	scurve->setStyle(QwtPlotCurve::NoCurve);
+	scurve->setSymbol(new QwtSymbol(QwtSymbol::Star1, Qt::SolidPattern, QPen(Qt::white), QSize(10,10)));
+	scurve->attach(splot);
+	scurve->setPen(QColor(Qt::white));
 	scatterplotBoxLayout->addWidget(splot);
 	customlayout->addWidget(scatterplotBox, 0, 2, 2, 4);
 
@@ -170,8 +175,7 @@ void fiber_rec::customizeGUI(void)
 	QObject::connect(clearPlotButton, SIGNAL(clicked()), splot, SLOT(clear(void)));
 	QObject::connect(clearPlotButton, SIGNAL(clicked()), this, SLOT(clearData(void)));
 	QObject::connect(trainNoiseButton, SIGNAL(clicked()), this, SLOT(toggleTrainMode(void)));
-	QObject::connect(this, SIGNAL(newDataPoint(double,double)), splot, SLOT(appendPoint(double,double)));
-	QObject::connect(this, SIGNAL(setPlotRange(double, double, double, double)), splot, SLOT(setAxes(double, double, double, double)));
+	QObject::connect(this, SIGNAL(processData(void)), this, SLOT(plotData(void)));
 
 	QGroupBox *status_group = new QGroupBox;
 	QHBoxLayout *status_layout = new QHBoxLayout;
@@ -206,7 +210,10 @@ void fiber_rec::clearData(void)
 {
 	// Clear data
 	voltage.clear();
-	splot->clear();
+	counter.clear();
+	plot_point.clear();
+	scurve->setSamples(counter, plot_point);
+	splot->replot();
 
 	// Update status
 	statusBar->showMessage(tr("Status: Data cleared..."));
@@ -214,12 +221,22 @@ void fiber_rec::clearData(void)
 
 void fiber_rec::plotData(void)
 {
+	// Clear old values
+	plot_point.clear();
+	counter.clear();
+
+	// Compute and save values
 	for (size_t i = 0; i <= voltage.size()/fs; i++)
 	{
-		// Compute noise floor
-		plot_point = abs(std::accumulate(voltage.begin()+(i*fs), voltage.begin()+((i+1)*fs), 0.0) / voltage.size());
-		emit newDataPoint((double)(i), plot_point);
+		plot_point.push_back((std::accumulate(voltage.begin()+(i*fs), voltage.begin()+((i+1)*fs), 0.0) / voltage.size()) - noise_floor);
+		counter.push_back(i+1);
 	}
+
+	// Plot
+	scurve->setSamples(counter, plot_point);
+	//splot->setAxes(0.0, (double)counter.size(),
+	//		0.0, *max_element((plot_point.toStdVector()).begin(), (plot_point.toStdVector()).end()));
+	splot->replot();
 }
 
 void fiber_rec::trainNoise(void)
