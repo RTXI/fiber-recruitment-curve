@@ -1,20 +1,20 @@
 /*
-			Copyright (C) 2015 Georgia Institute of Technology
+	 Copyright (C) 2015 Georgia Institute of Technology
 
-			This program is free software: you can redistribute it and/or modify
-			it under the terms of the GNU General Public License as published by
-			the Free Software Foundation, either version 3 of the License, or
-			(at your option) any later version.
+	 This program is free software: you can redistribute it and/or modify
+	 it under the terms of the GNU General Public License as published by
+	 the Free Software Foundation, either version 3 of the License, or
+	 (at your option) any later version.
 
-			This program is distributed in the hope that it will be useful,
-			but WITHOUT ANY WARRANTY; without even the implied warranty of
-			MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-			GNU General Public License for more details.
+	 This program is distributed in the hope that it will be useful,
+	 but WITHOUT ANY WARRANTY; without even the implied warranty of
+	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	 GNU General Public License for more details.
 
-			You should have received a copy of the GNU General Public License
-			along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	 You should have received a copy of the GNU General Public License
+	 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-*/
+ */
 
 #include <fiber_rec.h>
 #include <main_window.h>
@@ -196,13 +196,25 @@ void fiber_rec::initStim(void)
 	idx = 0;
 	double amp = min_amp;
 	num_pulses = (max_amp - min_amp)/step;
-	for (int n = 0; n < num_pulses; n++)
+	int n = 0;
+
+	// Delay stim by 1 second
+	for (n = 0; n < fs; n++)
+	{
+		stim.push_back(0);
+	}
+	for (; n < (num_pulses+fs); n++)
 	{
 		amp += step;
 		for (int i = 0; i < pulse_width / period; i++)
 			stim.push_back(amp);
 		for (int i = 0; i < ((delay - pulse_width) / period); i++)
 			stim.push_back(0);
+	}
+	// Delay stim by 1 second
+	for (; n < (num_pulses+fs); n++)
+	{
+		stim.push_back(0);
 	}
 }
 
@@ -226,10 +238,11 @@ void fiber_rec::plotData(void)
 	counter.clear();
 
 	// Compute and save values
-	for (size_t i = 0; i <= voltage.size()/fs; i++)
+	for (size_t i = 0; i < (int)(voltage.size()/fs); i++)
 	{
+		printf("now processing %f to %f\n", voltage.begin()+i*fs, voltage.begin()+((i+1)*fs));
 		plot_point.push_back((std::accumulate(voltage.begin()+(i*fs), voltage.begin()+((i+1)*fs), 0.0) / voltage.size()) - noise_floor);
-		counter.push_back(i+1);
+		counter.push_back(i);
 	}
 
 	// Plot
