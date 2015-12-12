@@ -70,7 +70,7 @@ void fiber_rec::execute(void)
 			}
 			break;
 		case zap:
-			if (idx < stim.size())
+			if (idx <= stim.size())
 			{
 				voltage.push_back(input(0));
 				output(0) = stim[idx++];
@@ -237,10 +237,11 @@ void fiber_rec::plotData(void)
 	plot_point.clear();
 	counter.clear();
 
+	printf("stim size is %d\n", (int)stim.size());
+	printf("volt size is %d\n", (int)voltage.size());
 	// Compute and save values
-	for (size_t i = 0; i < (int)(voltage.size()/fs); i++)
+	for (size_t i = 0; i <= (int)(voltage.size()/fs); i++)
 	{
-		printf("now processing %f to %f\n", voltage.begin()+i*fs, voltage.begin()+((i+1)*fs));
 		plot_point.push_back((std::accumulate(voltage.begin()+(i*fs), voltage.begin()+((i+1)*fs), 0.0) / voltage.size()) - noise_floor);
 		counter.push_back(i);
 	}
