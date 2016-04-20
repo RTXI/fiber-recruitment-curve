@@ -237,8 +237,6 @@ void fiber_rec::plotData(void)
 	plot_point.clear();
 	counter.clear();
 
-	printf("stim size is %d\n", (int)stim.size());
-	printf("volt size is %d\n", (int)voltage.size());
 	// Compute and save values
 	for (size_t i = 0; i <= (int)(voltage.size()/fs); i++)
 	{
