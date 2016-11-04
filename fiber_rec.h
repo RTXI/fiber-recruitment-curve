@@ -47,15 +47,18 @@ class fiber_rec : public DefaultGUIModel {
 	
 	private:
 		mode_t mode;
+		double max_plot_val;
+		double max_plot_idx;
 		double max_amp;
+		double curr_avg_value;
 		double min_amp;
 		double step;
 		double pulse_width;
 		double period;
 		double delay;
-		double num_pulses;
 		double current_amp;
 		double noise_floor;
+		int num_pulses;
 		int idx;
 		void initStim(void);
 		void trainNoise(void);

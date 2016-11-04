@@ -1,20 +1,20 @@
 /*
-	 Copyright (C) 2015 Georgia Institute of Technology
+			Copyright (C) 2015 Georgia Institute of Technology
 
-	 This program is free software: you can redistribute it and/or modify
-	 it under the terms of the GNU General Public License as published by
-	 the Free Software Foundation, either version 3 of the License, or
-	 (at your option) any later version.
+			This program is free software: you can redistribute it and/or modify
+			it under the terms of the GNU General Public License as published by
+			the Free Software Foundation, either version 3 of the License, or
+			(at your option) any later version.
 
-	 This program is distributed in the hope that it will be useful,
-	 but WITHOUT ANY WARRANTY; without even the implied warranty of
-	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	 GNU General Public License for more details.
+			This program is distributed in the hope that it will be useful,
+			but WITHOUT ANY WARRANTY; without even the implied warranty of
+			MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+			GNU General Public License for more details.
 
-	 You should have received a copy of the GNU General Public License
-	 along with this program.  If not, see <http://www.gnu.org/licenses/>.
+			You should have received a copy of the GNU General Public License
+			along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
- */
+*/
 
 #include <fiber_rec.h>
 #include <main_window.h>
@@ -34,6 +34,7 @@ static DefaultGUIModel::variable_t vars[] = {
 	{ "Amp Step", "Step size for incrememnting stimulus value (V)", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, }, 
 	{ "Delay", "Delay (s) between stimuli", DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE, },
 	{ "Current Amp", "Current stimulus amp (V)", DefaultGUIModel::STATE | DefaultGUIModel::DOUBLE, }, 
+	{ "Noise Floor", "Noise value (V)", DefaultGUIModel::STATE | DefaultGUIModel::DOUBLE, },
 	{ "Voltage", "Input signal", DefaultGUIModel::INPUT, },
 	{ "Stimulus", "Stimulus output", DefaultGUIModel::OUTPUT, },
 };
@@ -75,12 +76,22 @@ void fiber_rec::execute(void)
 				voltage.push_back(input(0));
 				output(0) = stim[idx++];
 				if(output(0) != 0.0)
-					current_amp = stim[idx++];
+					current_amp = output(0);
+				if(!(idx % (int)fs))
+				{
+					// Update counter and compute and save values
+					max_plot_idx = idx / (int)fs;
+					counter.push_back(max_plot_idx);
+					curr_avg_value = (std::accumulate(voltage.begin()+(idx-fs), voltage.begin()+idx, 0.0) / fs) - noise_floor;
+					max_plot_val = (curr_avg_value > max_plot_val) ? curr_avg_value : max_plot_val;
+					plot_point.push_back(curr_avg_value);
+					emit processData();
+				}
 			}
 			else
 			{
+				statusBar->showMessage(tr("Status: Trial complete..."));
 				pauseButton->setChecked(true);
-				emit processData();
 			}
 			break;
 		default:
@@ -101,13 +112,17 @@ void fiber_rec::update(DefaultGUIModel::update_flags_t flag)
 			delay = 1.0; // s
 			current_amp = 0; // V
 			idx = 0;
-			noise_floor = 0;
+			noise_floor = 0; // V
+			curr_avg_value = 0.0;
+			max_plot_val = 0.0;
+			max_plot_idx = 0.0;
 			setParameter("Pulse Width", pulse_width);
 			setParameter("Max Amp", max_amp);
 			setParameter("Min Amp", min_amp);
 			setParameter("Amp Step", step);
 			setParameter("Delay", delay);
 			setState("Current Amp", current_amp);
+			setState("Noise Floor", noise_floor);
 			period = RT::System::getInstance()->getPeriod() * 1e-9; // s
 			initStim();
 			break;
@@ -154,7 +169,7 @@ void fiber_rec::customizeGUI(void)
 	QHBoxLayout *scatterplotBoxLayout = new QHBoxLayout;
 	scatterplotBox->setLayout(scatterplotBoxLayout);
 	splot = new ScatterPlot(this);
-	splot->setFixedSize(450, 270);
+	splot->setFixedSize(450, 300);
 	splot->setAxes(0.0, 10.0, 0.0, 1.0);
 	scurve = new QwtPlotCurve();
 	scurve->setStyle(QwtPlotCurve::NoCurve);
@@ -186,7 +201,7 @@ void fiber_rec::customizeGUI(void)
 	status_layout->addWidget(statusBar);
 
 	customlayout->addWidget(button_group, 0, 0);
-	customlayout->addWidget(status_group, 10, 2, 1, 1);
+	customlayout->addWidget(status_group, 10, 2, 1, 4);
 	setLayout(customlayout);
 }
 
@@ -195,32 +210,24 @@ void fiber_rec::initStim(void)
 	stim.clear();
 	idx = 0;
 	double amp = min_amp;
-	num_pulses = (max_amp - min_amp)/step;
-	int n = 0;
+	num_pulses = floor((max_amp - min_amp)/step)+1;
 
-	// Delay stim by 1 second
-	for (n = 0; n < fs; n++)
+	for (int n = 0; n < num_pulses; n++)
 	{
-		stim.push_back(0);
-	}
-	for (; n < (num_pulses+fs); n++)
-	{
-		amp += step;
 		for (int i = 0; i < pulse_width / period; i++)
 			stim.push_back(amp);
 		for (int i = 0; i < ((delay - pulse_width) / period); i++)
 			stim.push_back(0);
-	}
-	// Delay stim by 1 second
-	for (; n < (num_pulses+fs); n++)
-	{
-		stim.push_back(0);
+		amp += step;
 	}
 }
 
 void fiber_rec::clearData(void)
 {
 	// Clear data
+	curr_avg_value = 0.0;
+	max_plot_val = 0.0;
+	max_plot_idx = 0.0;
 	voltage.clear();
 	counter.clear();
 	plot_point.clear();
@@ -233,21 +240,9 @@ void fiber_rec::clearData(void)
 
 void fiber_rec::plotData(void)
 {
-	// Clear old values
-	plot_point.clear();
-	counter.clear();
-
-	// Compute and save values
-	for (size_t i = 0; i <= (int)(voltage.size()/fs); i++)
-	{
-		plot_point.push_back((std::accumulate(voltage.begin()+(i*fs), voltage.begin()+((i+1)*fs), 0.0) / voltage.size()) - noise_floor);
-		counter.push_back(i);
-	}
-
 	// Plot
 	scurve->setSamples(counter, plot_point);
-	//splot->setAxes(0.0, (double)counter.size(),
-	//		0.0, *max_element((plot_point.toStdVector()).begin(), (plot_point.toStdVector()).end()));
+	splot->setAxes(0.0, max_plot_idx+1, 0.0, max_plot_val);
 	splot->replot();
 }
 
