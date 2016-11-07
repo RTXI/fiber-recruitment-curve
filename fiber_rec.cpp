@@ -81,11 +81,14 @@ void fiber_rec::execute(void)
 				{
 					// Update counter and compute and save values
 					max_plot_idx = idx / (int)fs;
-					counter.push_back(max_plot_idx);
-					curr_avg_value = (std::accumulate(voltage.begin()+(idx-fs), voltage.begin()+idx, 0.0) / fs) - noise_floor;
-					max_plot_val = (curr_avg_value > max_plot_val) ? curr_avg_value : max_plot_val;
-					plot_point.push_back(curr_avg_value);
-					emit processData();
+					if(max_plot_idx < num_pulses)
+					{
+						counter.push_back(max_plot_idx);
+						curr_avg_value = (std::accumulate(voltage.begin()+(idx-fs), voltage.begin()+idx, 0.0) / fs) - noise_floor;
+						max_plot_val = (curr_avg_value > max_plot_val) ? curr_avg_value : max_plot_val;
+						plot_point.push_back(curr_avg_value);
+						emit processData();
+					}
 				}
 			}
 			else
@@ -212,7 +215,7 @@ void fiber_rec::initStim(void)
 	double amp = min_amp;
 	num_pulses = floor((max_amp - min_amp)/step)+1;
 
-	for (int n = 0; n < num_pulses; n++)
+	for (int n = 0; n <= num_pulses; n++)
 	{
 		for (int i = 0; i < pulse_width / period; i++)
 			stim.push_back(amp);
