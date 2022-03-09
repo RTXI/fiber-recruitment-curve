@@ -7,7 +7,7 @@ HEADERS = fiber_rec.h\
 SOURCES = fiber_rec.cpp\
           moc_fiber_rec.cpp\
 
-LIBS = -lqwt -lrtplot
+LIBS = -lqwt-qt5 -lrtplot
 
 ### Do not edit below this line ###
 
